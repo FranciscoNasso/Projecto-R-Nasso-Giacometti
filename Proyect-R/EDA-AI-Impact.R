@@ -12,7 +12,7 @@ library(ggplot2)       # Para poder visulizar los datos con graficas
 
 
 # ---- 2. Carga de datos ----
-df <- read_csv("ai_job_market.csv") |> 
+df <- read_csv("../ai_job_trends_dataset.csv") |> 
   clean_names()
 
 
@@ -45,42 +45,54 @@ print(industry_freq)
 
 
 # ---- 7. Estadísticos descriptivos (variable continua) ----
-#Tomamos de ejemplo porcentaje de automatizacion
-summary(df$percentage_of_automation)
-sd(df$percentage_of_automation, na.rm = TRUE)
+#Tomamos de ejemplo el salario medio
+summary(df$median_salary_usd)
+sd(df$median_salary_usd, na.rm = TRUE)
 
 
 # ---- 8. Gráficos con ggplot2 ----
 
 # Gráfico de barras: industrias con más registros
-ggplot(df, aes(x = fct_infreq(industry))) +
-  geom_bar(fill = "steelblue") +
+grafico_industria_impacto <- df |>
+  count(industry, ai_impact_level) |>
+  ggplot(aes(x = reorder(industry, -n), y = n, fill = ai_impact_level)) +
+  geom_col(position = "dodge") +
   coord_flip() +
-  labs(title = "Frecuencia por industria",
-       x = "Industria", y = "Cantidad")
+  labs(
+    title = "Nivel de impacto de la IA por industria",
+    x = "Industria",
+    y = "Cantidad de puestos",
+    fill = "Impacto IA"
+  )
+
+#Para guardar la imagen del grafico
+ggsave("grafico1_industria_impacto.png", grafico_industria_impacto, width = 9, height = 6)
 
 
-# Gráfico de dispersión: % automatización vs crecimiento
-ggplot(df, aes(x = percentage_of_automation, y = projected_job_growth)) +
-  geom_point(alpha = 0.6) +
-  geom_smooth(method = "lm", se = FALSE, color = "red") +
-  labs(title = "Automatización vs Crecimiento Proyectado",
-       x = "% de automatización",
-       y = "Crecimiento de empleo proyectado")
+# Grafico de salario por nivel de impacto
+grafico_salario_impacto <- ggplot(df, aes(x = ai_impact_level, y = median_salary_usd, fill = ai_impact_level)) +
+  geom_boxplot() +
+  labs(
+    title = "Salario mediano según nivel de impacto de la IA",
+    x = "Nivel de impacto",
+    y = "Salario mediano (USD)"
+  ) +
+  theme(legend.position = "none")
+
+ggsave("grafico2_salario_impacto.png", grafico_salario_impacto, width = 7, height = 5)
 
 
-# Correlación
-cor(df$percentage_of_automation, df$projected_job_growth, use = "complete.obs")
+# Grafico de impacto de la ia segund nivel educativo
+grafico_educacion_impacto <- df |>
+  count(required_education, ai_impact_level) |>
+  ggplot(aes(x = reorder(required_education, -n), y = n, fill = ai_impact_level)) +
+  geom_col(position = "fill") +
+  scale_y_continuous(labels = scales::percent) +
+  labs(
+    title = "Distribución del impacto IA según educación requerida",
+    x = "Nivel educativo",
+    y = "Proporción de trabajos",
+    fill = "Impacto IA"
+  )
 
-
-# Boxplot: automatización por nivel de riesgo
-ggplot(df, aes(x = risk_level, y = percentage_of_automation)) +
-  geom_boxplot(fill = "lightgreen") +
-  labs(title = "Automatización según nivel de riesgo",
-       x = "Nivel de riesgo",
-       y = "% de automatización")
-
-# ---- 9. Guardar gráficos (Si es que usted desea, igual en el repositorio van a estar las imagenes) ----
-ggsave("grafico_barras_industria.png")
-ggsave("grafico_dispersion.png")
-ggsave("boxplot_riesgo.png")
+ggsave("grafico3_educacion_impacto.png", grafico_educacion_impacto, width = 9, height = 6)
